@@ -1,1 +1,3 @@
-bot/
+facebookBot/
+botServer.ini
+*.pyc
