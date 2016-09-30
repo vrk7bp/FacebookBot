@@ -2,9 +2,22 @@ from flask import Flask
 from datetime import datetime
 from flask import render_template
 from flask import redirect
+from flask import request
 application = Flask(__name__)
 
-@application.route('/')
+@application.route('/', methods=['GET'])
+def verify():
+    # when the endpoint is registered as a webhook, it must echo back
+    # the 'hub.challenge' value it receives in the query arguments
+    if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
+        if not request.args.get("hub.verify_token") == "this_is_a_test":
+            return "Verification token mismatch", 403
+        return request.args["hub.challenge"], 200
+
+    return "Hello world", 200
+
+
+
 @application.route('/home')
 def home():
 	return "<h1 style='color:blue'>Hello There!</h1>"
