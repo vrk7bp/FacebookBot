@@ -3,3 +3,4 @@ botServer.ini
 *.pyc
 PageTokens/
 blah.py
+constants.py
