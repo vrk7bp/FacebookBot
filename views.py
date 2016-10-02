@@ -10,21 +10,23 @@ import constants
 
 application = Flask(__name__)
 
+#Endpoint for verification, and html result when people hit the URL
 @application.route('/', methods=['GET'])
 def verify():
-    # when the endpoint is registered as a webhook, it must echo back
-    # the 'hub.challenge' value it receives in the query arguments
+    # when the endpoint is registered as a webhook, it must echo back the 'hub.challenge' value it receives in the query arguments
     if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
         if not request.args.get("hub.verify_token") == constants.VERIFY_TOKEN:
             return "Verification token mismatch", 403
+            print "Bad Verification" #logging
+        print "Good Verification" #logging
         return request.args["hub.challenge"], 200
 
+    print "Someone accessed the home page" #logging
     return "Hello world", 200
 
+#Endpoint that is hit when Facebook sends a "request" to the bot
 @application.route('/', methods=['POST'])
 def webhook():
-
-    # endpoint for processing incoming messaging events
 
     data = request.get_json()
 
@@ -33,27 +35,26 @@ def webhook():
         for entry in data["entry"]:
             for messaging_event in entry["messaging"]:
 
-                if messaging_event.get("message"):  # someone sent us a message
-
-                    sender_id = messaging_event["sender"]["id"]        # the facebook ID of the person sending you the message
-                    recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
-                    message_text = messaging_event["message"]["text"]  # the message's text
-
-                    send_message(sender_id, "got it, thanks!")
-
-                if messaging_event.get("delivery"):  # delivery confirmation
-                    pass
-
                 if messaging_event.get("optin"):  # optin confirmation
-                    pass
+                   receivedAuthentication()
 
-                if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
-                    pass
+                elif messaging_event.get("message"):  # someone sent us a message
+                   receivedMessage(messaging_event)
+
+                elif messaging_event.get("delivery"):  # delivery confirmation
+                   receivedDeliveryConfirmation()
+
+                elif messaging_event.get("read"):  # confirmation that someone sent us a message
+                   receivedRead(messaging_event)
+
+                else:
+                   print "Unknown messaging event received: " + str(messaging_event)
 
     return "ok", 200
 
-def send_message(recipient_id, message_text):
-
+def receivedMessage(messaging_event):
+    print "Received message for user " + str(messaging_event["sender"]["id"]) + " from page " + str(messaging_event["recipient"]["id"]) + " at " + str(messaging_event["timestamp"]) + " with message: " + str(messaging_event["message"]["text"]) + "; SEQ NUM: " + str(messaging_event["message"]["seq"]) #logging
+    
     params = {
         "access_token": constants.MY_TOKEN
     }
@@ -62,13 +63,22 @@ def send_message(recipient_id, message_text):
     }
     data = json.dumps({
         "recipient": {
-            "id": recipient_id
+            "id": messaging_event["sender"]["id"]
         },
         "message": {
-            "text": message_text
+            "text": "Thanks for the message :)"
         }
     })
     r = requests.post("https://graph.facebook.com/v2.6/me/messages", params=params, headers=headers, data=data)
+
+def receivedDeliveryConfirmation():
+    print "Received delivery confirmation" #logging
+
+def receivedAuthentication():
+    print "Received authentication" #logging
+
+def receivedRead(message_event):
+    print "Sequence number " + str(message_event["read"]["seq"]) + " was read by user " + str(message_event["sender"]["id"])  #logging 
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0')
