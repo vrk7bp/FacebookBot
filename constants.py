@@ -1,0 +1,2 @@
+MY_TOKEN = ""
+VERIFY_TOKEN = ""
