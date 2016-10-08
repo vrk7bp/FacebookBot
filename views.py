@@ -1,26 +1,28 @@
+# This is the "proxy" for the bot web server. This is where both verfication and post requests come in, and are then routed to other files/methods accordingly.
+
 from flask import Flask
 from datetime import datetime
 from flask import render_template
 from flask import redirect
 from flask import request
 
-import requests
-import json
-import constants
+import constants # constants.py, where your own verification and page_token should be defined
+import messageHandler # messageHandler.py, where methods for dealing with "message" post requests are found
 
 application = Flask(__name__)
 
-#Endpoint for verification, and html result when people hit the URL
+# Endpoint for verification, and html result when people hit the URL
 @application.route('/', methods=['GET'])
 def verify():
     # when the endpoint is registered as a webhook, it must echo back the 'hub.challenge' value it receives in the query arguments
     if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
         if not request.args.get("hub.verify_token") == constants.VERIFY_TOKEN:
-            return "Verification token mismatch", 403
             print "Bad Verification" #logging
+            return "Verification token mismatch", 403
         print "Good Verification" #logging
         return request.args["hub.challenge"], 200
 
+    # Code that runs if someone simply navigated to the URL via a browser
     print "Someone accessed the home page" #logging
     return "Hello world", 200
 
@@ -47,38 +49,33 @@ def webhook():
                 elif messaging_event.get("read"):  # confirmation that someone sent us a message
                    receivedRead(messaging_event)
 
+                elif messaging_event.get("postback"): # user clicked button that resulted in postback
+                   receivedPostback(messaging_event)
                 else:
                    print "Unknown messaging event received: " + str(messaging_event)
 
     return "ok", 200
 
-def receivedMessage(messaging_event):
-    print "Received message for user " + str(messaging_event["sender"]["id"]) + " from page " + str(messaging_event["recipient"]["id"]) + " at " + str(messaging_event["timestamp"]) + " with message: " + str(messaging_event["message"]["text"]) + "; SEQ NUM: " + str(messaging_event["message"]["seq"]) #logging
-    
-    params = {
-        "access_token": constants.MY_TOKEN
-    }
-    headers = {
-        "Content-Type": "application/json"
-    }
-    data = json.dumps({
-        "recipient": {
-            "id": messaging_event["sender"]["id"]
-        },
-        "message": {
-            "text": "Thanks for the message :)"
-        }
-    })
-    r = requests.post("https://graph.facebook.com/v2.6/me/messages", params=params, headers=headers, data=data)
-
-def receivedDeliveryConfirmation():
-    print "Received delivery confirmation" #logging
-
+# Authentication Handler
 def receivedAuthentication():
     print "Received authentication" #logging
 
+# Message Received Handler
+def receivedMessage(messaging_event):
+    messageHandler.receivedMessage(messaging_event)
+
+# Delivery Confirmation Handler
+def receivedDeliveryConfirmation():
+    print "Received delivery confirmation" #logging
+
+# Receive Handler
 def receivedRead(message_event):
     print "Sequence number " + str(message_event["read"]["seq"]) + " was read by user " + str(message_event["sender"]["id"])  #logging 
+
+# Postback Handler
+def receivedPostback(message_event):
+    print "Got back a postback, the payload was: " + str(message_event["postback"]["payload"]) #logging
+    messageHandler.sendTextMessage(message_event["sender"]["id"], "Got your postback")
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0')
