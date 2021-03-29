@@ -32,7 +32,7 @@ psutil==4.1.0
 pyasn1==0.1.9
 PyBBIO==0.10
 pycparser==2.10
-Pygments==2.0.1
+Pygments==2.7.4
 pygobject==3.14.0
 pygpgme==0.3
 PyICU==1.8
