@@ -46,7 +46,7 @@ pytz==2012rc0
 requests==2.11.1
 serbus==1.0.4
 six==1.9.0
-urllib3==1.9.1
+urllib3==1.26.5
 virtualenv==15.0.3
 Werkzeug==0.9.6
 zope.component==4.2.1
